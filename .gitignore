@@ -1,0 +1,27 @@
+cd mototaxi-system
+cat > .gitignore << 'EOF'
+# Dependencias
+frontend/node_modules/
+backend/__pycache__/
+backend/*.pyc
+backend/.venv/
+backend/uploads/   # Si no querés subir fotos de prueba
+
+# Entorno
+.env
+*.env
+
+# Migraciones (se generan automáticamente)
+backend/migrations/
+
+# Base de datos
+*.db
+*.sqlite3
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Docker
+postgres_data/
+EOF
