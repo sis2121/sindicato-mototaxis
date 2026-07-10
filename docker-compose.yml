@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mototaxi-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mototaxi_db}
+      POSTGRES_USER: ${POSTGRES_USER:-mototaxi_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mototaxi_password_secure}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-mototaxi_user} -d ${POSTGRES_DB:-mototaxi_db}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - mototaxi-network
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    container_name: mototaxi-backend
+    environment:
+      FLASK_ENV: ${FLASK_ENV:-development}
+      SECRET_KEY: ${SECRET_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-mototaxi_user}:${POSTGRES_PASSWORD:-mototaxi_password_secure}@postgres:5432/${POSTGRES_DB:-mototaxi_db}
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - mototaxi-network
+    restart: unless-stopped
+    volumes:
+      - ./backend:/app
+      - ./backend/uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: mototaxi-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - mototaxi-network
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:
+
+networks:
+  mototaxi-network:
+    driver: bridge
